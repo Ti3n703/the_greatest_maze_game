@@ -33,28 +33,13 @@ class Maze:
             raise ValueError("Unknown algorithm: {}".format(algorithm))
 
     def _draw_maze(self, screen):
+        for step, next_step in self.path.build_steps:
+            x1, y1 = map(int, step.split(','))
+            x2, y2 = map(int, next_step.split(','))
+            pygame.draw.line(screen, (225, 225, 255), 
+                             (x1 * self.CELL_SIZE + self.CELL_SIZE // 2, y1 * self.CELL_SIZE + self.CELL_SIZE // 2),
+                             (x2 * self.CELL_SIZE + self.CELL_SIZE // 2, y2 * self.CELL_SIZE + self.CELL_SIZE // 2), 3)
             
-        for start, end in self.path.build_steps:
-            x1, y1 = map(int, start.split(','))
-            x2, y2 = map(int, end.split(','))
-
-            # convert to pixel coordinates
-            cx = min(x1, x2) * self.CELL_SIZE
-            cy = min(y1, y2) * self.CELL_SIZE
-
-            # erase wall between start and end
-            if x1 == x2:
-                # horizontal movement → erase vertical wall
-                mid = (y1 + y2) // 2
-                pygame.draw.line(screen, (255, 255, 255), 
-                    (x1 * self.CELL_SIZE, mid * self.CELL_SIZE), 
-                    ((x1 + 1) * self.CELL_SIZE, mid * self.CELL_SIZE), 2)
-            elif y1 == y2:
-                # vertical movement → erase horizontal wall
-                mid = (x1 + x2) // 2
-                pygame.draw.line(screen, (255, 255, 255), 
-                    (mid * self.CELL_SIZE, y1 * self.CELL_SIZE), 
-                    (mid * self.CELL_SIZE, (y1 + 1) * self.CELL_SIZE), 2)
 
         
 
@@ -362,6 +347,7 @@ if __name__ == "__main__":
         
         screen.fill((255, 255, 255))  # Clear the screen with white color
         maze_instance._draw_grid(screen)
+        maze_instance._draw_maze(screen)
   
         
         pygame.display.flip()
