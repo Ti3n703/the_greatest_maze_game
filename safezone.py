@@ -7,11 +7,16 @@ class Safe_Zone:
         self.player = game.player 
         self.screen = game.screen
         self.maze = game.maze
+        self.sz_color = game.sz_color
     
     
-    def draw_safe_zone(self, game):
-        for (y, x) in self.safe_zone_list:
-            pygame.draw.rect(self.screen, (0, 255, 0), (x * self.maze.CELL_SIZE+2, y * self.maze.CELL_SIZE+2, self.maze.CELL_SIZE-4, self.maze.CELL_SIZE-4))
+    def draw_safe_zone(self):
+        for (x,y) in self.safe_zone_list:
+            center_x = x * self.maze.CELL_SIZE + self.maze.CELL_SIZE // 2
+            center_y = y * self.maze.CELL_SIZE + self.maze.CELL_SIZE // 2
+            # Vẽ hình tròn
+            pygame.draw.circle(self.screen, self.sz_color, (center_x, center_y), self.maze.CELL_SIZE // 2 - 4)
+            
         
     def create_safezone(self, size, count=10):  # count is the number of additional safe zones to create
         self.safe_zone_list = set()
@@ -19,7 +24,7 @@ class Safe_Zone:
         self.safe_zone_list.add((0, 0))
         self.safe_zone_list.add((0, size-1))
         self.safe_zone_list.add((size-1, 0))
-        self.safe_zone_list.add((size-1, size-1))
+        
         if size > 2:
             self.safe_zone_list.add((size//2, size//2))
             self.safe_zone_list.add((0, size//2))

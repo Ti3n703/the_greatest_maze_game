@@ -1,11 +1,14 @@
+# ghost.py
 import random
 import pygame
+
 class ghost:
     def __init__(self,game):
-        self.position = [0, 0]  # Vị trí ban đầu của ma
-        self.color = (255, 0, 0)  # Màu đỏ cho ma
+        # Vị trí ban đầu của ma, giờ là góc dưới bên phải
+        self.position = [game.size - 1, game.size - 1]
+        self.color = (255, 0, 0)
         self.target = None
-        self.state = "roaming"  # Các trạng thái: roaming, chasing
+        self.state = "roaming"
         self.maze = game.maze
         self.screen = game.screen
         self.player = game.player
@@ -14,7 +17,7 @@ class ghost:
         self.move_delay = game.ghost_speed
 
         self.move_counter = 0
-        self.CELL_SIZE = 40
+        self.CELL_SIZE = game.CELL_SIZE
 
     def draw_ghost(self):
         pixel_x = self.position[0] * self.CELL_SIZE + self.CELL_SIZE // 2
@@ -22,22 +25,35 @@ class ghost:
         pygame.draw.circle(self.screen, self.color, (pixel_x, pixel_y), 10)
 
     def chase_target(self):
-        """Di chuyển ma về phía người chơi theo đường ngắn nhất."""
-        px, py = self.player._get_position()
-        self.target = f"{py},{px}" # Sửa lỗi: Đảo tọa độ để khớp với định dạng (y,x) của mê cung
-
-        start = f"{self.position[1]},{self.position[0]}" # Sửa lỗi: Đảo tọa độ (y,x)
-        path = self.path._dijkstra_path(start, self.target)
+        """Di chuyển ma về phía mục tiêu theo đường ngắn nhất."""
+        start = f"{self.position[0]},{self.position[1]}"
+        path_to_target = self.path._dijkstra_path(start, self.target)
         
-        if path and len(path) > 1:
-            x, y = map(int, path[1].split(','))
-            self.position = [y, x] # Sửa lỗi: Đảo tọa độ để cập nhật vị trí (x,y)
-            print(f"Ghost đang đuổi theo. Từ {start} đến {self.target}, bước tiếp theo là ({y},{x})")
+        # Di chuyển đến bước tiếp theo trên đường đi
+        if path_to_target and len(path_to_target) > 1:
+            x, y = map(int, path_to_target[1].split(','))
+            self.position = [x, y]
         else:
-            print(f"Không tìm thấy đường đi từ {start} đến {self.target}. Ghost đứng yên.")
+            # Nếu không tìm thấy đường đi hoặc đã đến nơi, chọn một hướng ngẫu nhiên để di chuyển
+            # Trong trường hợp này, hành vi "roam" mới sẽ được kích hoạt bởi update_ghost
+            self.target = None
 
 
-    def update_ghost(self):
+    def roam(self):
+        """Di chuyển ngẫu nhiên đến một ô lân cận hợp lệ. (Chức năng này không còn được sử dụng trực tiếp cho trạng thái roaming, thay vào đó, ma sẽ đi đến một điểm ngẫu nhiên.)"""
+        current_pos_str = f"{self.position[0]},{self.position[1]}"
+        # Lấy danh sách các ô lân cận hợp lệ từ đường đi
+        neighbors = list(self.path.adjacency_list.get(current_pos_str, {}).keys())
+        if neighbors:
+            next_pos_str = random.choice(neighbors)
+            x, y = map(int, next_pos_str.split(','))
+            self.position = [x, y]
+            
+    def check_event(self):
+        """
+        Cập nhật logic và vị trí của ma trong mỗi khung hình.
+        Đây là hàm chính để xử lý hành vi của ma.
+        """
         self.move_counter += 1
         if self.move_counter < self.move_delay:
             return
@@ -45,29 +61,32 @@ class ghost:
         self.move_counter = 0
         
         px, py = self.player._get_position()
-        # Sửa lỗi: Đảo tọa độ để khớp với định dạng (y,x) của mê cung
-        player_pos = f"{py},{px}"
+        player_pos = f"{px},{py}"
         
-        # Kiểm tra nếu người chơi ở trong vùng an toàn
+        # Cập nhật trạng thái của ma
         if self.safe_zone.player_is_in_safe_zone():
             self.state = 'roaming'
         else:
-            # Tính khoảng cách đến người chơi và quyết định trạng thái
-            current_ghost_pos = f"{self.position[1]},{self.position[0]}" # Sửa lỗi: Đảo tọa độ (y,x)
+            current_ghost_pos = f"{self.position[0]},{self.position[1]}"
             distance_path = self.path._dijkstra_path(current_ghost_pos, player_pos)
             distance = len(distance_path) if distance_path else float('inf')
             self.state = 'roaming' if distance > 5 else 'chasing'
-            
+        
+        # Thực hiện hành động dựa trên trạng thái
         if self.state == 'roaming':
-            # Logic di chuyển ngẫu nhiên
-            current_pos_str = f"{self.position[1]},{self.position[0]}" # Sửa lỗi: Đảo tọa độ (y,x)
-            neighbors = list(self.path.adjacency_list.get(current_pos_str, {}).keys())
-            if neighbors:
-                next_pos_str = random.choice(neighbors)
-                x, y = map(int, next_pos_str.split(','))
-                self.position = [y, x] # Sửa lỗi: Đảo tọa độ để cập nhật vị trí (x,y)
-                print(f"Ghost đang đi lang thang. Vị trí hiện tại: ({self.position[0]},{self.position[1]})")
-        else: # Chasing
+            # Nếu ma không có mục tiêu hoặc đã đến mục tiêu, chọn một điểm ngẫu nhiên mới
+            if self.target is None or self.position == list(map(int, self.target.split(','))):
+                x = random.randint(0, self.maze.size - 1)
+                y = random.randint(0, self.maze.size - 1)
+                self.target = f"{x},{y}"
+            
+            # Di chuyển đến mục tiêu ngẫu nhiên
+            self.chase_target()
+        else:  # 'chasing'
+            self.target = player_pos
             self.chase_target()
         
+    def update_ghost(self):
+        self.check_event()
         self.draw_ghost()
+    

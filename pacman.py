@@ -1,20 +1,18 @@
-
-
 import pygame
 
 class player:
     def __init__(self, game):
-        self.color = (0, 40, 0)
-        self.position = [0, 0]
+        self.color = game.player_color
+        self.position = [0, 0]  # Lưu vị trí dưới dạng [x, y]
         self.maze = game.maze
         self.screen = game.screen
         self.path = game.path
-        self.CELL_SIZE = 40
-        self.move_delay = 10
+        self.move_delay = game.player_movement_delay
+        self.CELL_SIZE = game.CELL_SIZE
         self.move_counter = 0
 
     def _get_position(self):
-        """Trả về vị trí của người chơi dưới dạng tuple (row, col)."""
+        """Trả về vị trí của người chơi dưới dạng tuple (x, y)."""
         return self.position[0], self.position[1]
 
     def _move_up(self):
@@ -41,9 +39,9 @@ class player:
             print(" -> Không hợp lệ: Vượt quá biên giới mê cung.")
             return False
 
-        # Sửa lỗi: Đảm bảo chuỗi tọa độ (y,x) khớp với định dạng của mê cung
-        cur_position_str = f"{cur_y},{cur_x}"
-        new_position_str = f"{new_y},{new_x}"
+        # Tọa độ bây giờ đã đồng bộ, không cần đảo ngược
+        cur_position_str = f"{cur_x},{cur_y}"
+        new_position_str = f"{new_x},{new_y}"
 
         # Kiểm tra xem vị trí mới có phải là hàng xóm trong đường đi mê cung không
         if new_position_str in self.path.adjacency_list.get(cur_position_str, {}):
@@ -52,7 +50,7 @@ class player:
         print(f" -> Không hợp lệ: Không có đường đi. Các hàng xóm của {cur_position_str} là {list(self.path.adjacency_list.get(cur_position_str, {}).keys())}")
         return False
 
-    def update_player(self):
+    def check_event(self):
         self.move_counter += 1
         if self.move_counter < self.move_delay:
             return
@@ -70,9 +68,11 @@ class player:
         elif keys[pygame.K_RIGHT] and self._check_valid_move(1, 0):
             self._move_right()
 
-        self.draw_player()
-
     def draw_player(self):
         pixel_x = self.position[0] * self.CELL_SIZE + self.CELL_SIZE // 2
         pixel_y = self.position[1] * self.CELL_SIZE + self.CELL_SIZE // 2
         pygame.draw.circle(self.screen, self.color, (pixel_x, pixel_y), 10)
+
+    def update_player(self):
+        self.check_event()
+        self.draw_player()
