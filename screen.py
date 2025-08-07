@@ -1,9 +1,10 @@
 import pygame
 class Game_Screen:
-    def __init__(self, width, height):
+    def __init__(self, size, width, height):
         self.width = width
         self.height = height
         self.screen = pygame.display.set_mode((width, height))
+        self.size =  size
         pygame.display.set_caption("Maze Game")
         self.CELL_SIZE = 20  # Size of each cell in the maze
     
